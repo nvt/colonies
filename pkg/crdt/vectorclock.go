@@ -7,6 +7,45 @@ import (
 type ClientID string
 type VectorClock map[ClientID]int
 
+// NewVectorClock creates a new empty vector clock
+func NewVectorClock() *VectorClock {
+	vc := make(VectorClock)
+	return &vc
+}
+
+// Copy creates a copy of the vector clock
+func (vc *VectorClock) Copy() *VectorClock {
+	newClock := make(VectorClock)
+	for k, v := range *vc {
+		newClock[k] = v
+	}
+	return &newClock
+}
+
+// Merge merges another vector clock into this one
+func (vc *VectorClock) Merge(other *VectorClock) {
+	for k, v := range *other {
+		if existing, ok := (*vc)[k]; !ok || v > existing {
+			(*vc)[k] = v
+		}
+	}
+}
+
+// Equal checks if two vector clocks are equal
+func (vc *VectorClock) Equal(other *VectorClock) bool {
+	return clocksEqual(*vc, *other)
+}
+
+// Before checks if this vector clock is before another
+func (vc *VectorClock) Before(other *VectorClock) bool {
+	return compareClocks(*vc, *other) == ClockIsDominated
+}
+
+// After checks if this vector clock is after another
+func (vc *VectorClock) After(other *VectorClock) bool {
+	return compareClocks(*vc, *other) == ClockDominates
+}
+
 type ClockComparison int
 
 const (

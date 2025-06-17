@@ -72,6 +72,16 @@ func newTreeCRDT() *TreeCRDT {
 	return c
 }
 
+// NewTreeCRDT creates a new TreeCRDT with the specified client ID
+func NewTreeCRDT(clientID ClientID) *TreeCRDT {
+	tree := newTreeCRDT()
+	// Set the client ID on the root node
+	tree.Root.Owner = clientID
+	tree.Root.Clock = make(VectorClock)
+	tree.Root.Clock[clientID] = 1
+	return tree
+}
+
 func (c *TreeCRDT) CreateAttachedNode(name string, nodeType NodeType, parentID NodeID, clientID ClientID) (*NodeCRDT, error) {
 	id := generateRandomNodeID(name)
 	node := c.getOrCreateNode(id, nodeType, clientID, 1)
@@ -1328,4 +1338,66 @@ func (t *TreeCRDT) isDescendant(root NodeID, target NodeID) bool {
 		return false
 	}
 	return dfs(root)
+}
+
+// GetVectorClock returns the current vector clock of the tree
+func (t *TreeCRDT) GetVectorClock() *VectorClock {
+	// Compute the vector clock from all nodes
+	vc := NewVectorClock()
+	for _, node := range t.Nodes {
+		vc.Merge(&node.Clock)
+	}
+	return vc
+}
+
+// GetClientID returns the client ID for this tree
+func (t *TreeCRDT) GetClientID() ClientID {
+	// Find the most recent client ID from nodes
+	var latestClient ClientID
+	var latestVersion int
+
+	for _, node := range t.Nodes {
+		if node.Clock[node.Owner] > latestVersion {
+			latestVersion = node.Clock[node.Owner]
+			latestClient = node.Owner
+		}
+	}
+
+	return latestClient
+}
+
+// SubscribeWithCallback registers a callback for changes to the tree
+func (t *TreeCRDT) SubscribeWithCallback(path string, callback func(Event)) {
+	// Convert the callback to the internal channel-based subscription
+	ch := make(chan NodeEvent, 100)
+	go func() {
+		for evt := range ch {
+			// Find the actual node
+			node, _ := t.Nodes[evt.NodeID]
+
+			// Convert NodeEventType to EventType string
+			var eventType EventType
+			switch evt.Type {
+			case EventAdded:
+				eventType = EventTypeAdded
+			case EventRemoved:
+				eventType = EventTypeRemoved
+			case EventUpdated:
+				eventType = EventTypeUpdated
+			case EventMarkedDeleted:
+				eventType = EventTypeMarkedDeleted
+			default:
+				eventType = EventTypeUpdated
+			}
+
+			callback(Event{
+				Type: eventType,
+				Path: evt.Path,
+				Node: node,
+			})
+		}
+	}()
+
+	// Use the existing Subscribe method with channel
+	t.Subscribe(path, ch)
 }

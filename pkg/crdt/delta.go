@@ -36,4 +36,9 @@ type Delta struct {
 	NodeType NodeType `json:"node_type,omitempty"`
 	IsRoot   bool     `json:"isroot,omitempty"`
 	ParentID bool     `json:"parentid,omitempty"`
+
+	// Synchronization fields
+	Operation string       `json:"operation,omitempty"` // Operation type for sync
+	Path      string       `json:"path,omitempty"`      // JSON path for the operation
+	Clock     *VectorClock `json:"clock,omitempty"`     // Vector clock at time of operation
 }

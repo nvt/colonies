@@ -127,3 +127,20 @@ func (c *TreeCRDT) notifySubscribers(nodeID NodeID, eventType NodeEventType) {
 		}
 	}
 }
+
+// Event is the public event type for subscriptions
+type Event struct {
+	Type EventType
+	Path string
+	Node *NodeCRDT
+}
+
+// EventType is the public event type enum
+type EventType string
+
+const (
+	EventTypeAdded         EventType = "added"
+	EventTypeRemoved       EventType = "removed"
+	EventTypeUpdated       EventType = "updated"
+	EventTypeMarkedDeleted EventType = "marked_deleted"
+)
