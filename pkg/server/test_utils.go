@@ -99,7 +99,7 @@ func SetupTestEnv1(t *testing.T) (*TestEnv1, *client.ColoniesClient, *Server, st
 	}, client, server, serverPrvKey, done
 }
 
-func setupTestEnv1(t *testing.T) (*testEnv1, *client.ColoniesClient, *Server, string, chan bool) {
+func setupTestEnv1(t testing.TB) (*testEnv1, *client.ColoniesClient, *Server, string, chan bool) {
 	rand.Seed(time.Now().UTC().UnixNano())
 
 	gin.SetMode(gin.ReleaseMode)
@@ -197,15 +197,15 @@ func SetupTestEnv2(t *testing.T) (*TestEnv2, *client.ColoniesClient, *Server, st
 	}, client, server, serverPrvKey, done
 }
 
-func PrepareTests(t *testing.T) (*client.ColoniesClient, *Server, string, chan bool) {
+func PrepareTests(t testing.TB) (*client.ColoniesClient, *Server, string, chan bool) {
 	return prepareTests(t)
 }
 
-func prepareTests(t *testing.T) (*client.ColoniesClient, *Server, string, chan bool) {
+func prepareTests(t testing.TB) (*client.ColoniesClient, *Server, string, chan bool) {
 	return prepareTestsWithRetention(t, false)
 }
 
-func prepareTestsWithRetention(t *testing.T, retention bool) (*client.ColoniesClient, *Server, string, chan bool) {
+func prepareTestsWithRetention(t testing.TB, retention bool) (*client.ColoniesClient, *Server, string, chan bool) {
 	os.RemoveAll("/tmp/colonies")
 	client := client.CreateColoniesClient(constants.TESTHOST, constants.TESTPORT, Insecure, SkipTLSVerify)
 

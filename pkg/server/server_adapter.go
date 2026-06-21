@@ -99,6 +99,12 @@ func (s *ServerAdapter) LogDB() database.LogDatabase {
 	return s.server.logDB
 }
 
+// IngestLogs persists authorized log batches via the server's log ingestor
+// (synchronous by default, or coalesced when COLONIES_LOG_ASYNC is set).
+func (s *ServerAdapter) IngestLogs(logs []*core.Log) error {
+	return s.server.logIngestor.Ingest(logs)
+}
+
 func (s *ServerAdapter) SnapshotDB() database.SnapshotDatabase {
 	return s.server.snapshotDB
 }

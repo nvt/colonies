@@ -411,6 +411,14 @@ func (m *MockLogDB) AddLog(processID string, colonyName string, executorName str
 	return m.addLogErr
 }
 
+func (m *MockLogDB) AddLogs(logs []*core.Log) error {
+	if m.addLogErr != nil {
+		return m.addLogErr
+	}
+	m.logs = append(m.logs, logs...)
+	return nil
+}
+
 func (m *MockLogDB) GetLogsByProcessID(processID string, limit int) ([]*core.Log, error) {
 	return m.logs, m.getLogErr
 }
@@ -488,6 +496,11 @@ func (m *MockServer) ProcessDB() database.ProcessDatabase {
 
 func (m *MockServer) LogDB() database.LogDatabase {
 	return m.logDB
+}
+
+// IngestLogs mirrors the synchronous path: write straight to the mock log DB.
+func (m *MockServer) IngestLogs(logs []*core.Log) error {
+	return m.logDB.AddLogs(logs)
 }
 
 func createMockServer() *MockServer {
@@ -698,6 +711,109 @@ func TestHandleAddLogDBErrorUnit(t *testing.T) {
 
 	handlers.HandleAddLog(ctx, "test-id", rpc.AddLogPayloadType, jsonStr)
 	assert.True(t, server.httpError)
+}
+
+func runningAssignedProcess() *core.Process {
+	return &core.Process{
+		ID:                 "process-id",
+		State:              core.RUNNING,
+		AssignedExecutorID: "test-id",
+		FunctionSpec: core.FunctionSpec{
+			Conditions: core.Conditions{ColonyName: "test-colony"},
+		},
+	}
+}
+
+// approvedExecutor is the assigned executor: an approved member of test-colony.
+func approvedExecutor() *core.Executor {
+	return &core.Executor{ID: "test-id", Name: "test-executor", ColonyName: "test-colony", State: core.APPROVED}
+}
+
+func TestHandleAddLogsHappyPathUnit(t *testing.T) {
+	server := createMockServer()
+	server.processDB.process = runningAssignedProcess()
+	server.executorDB.executor = approvedExecutor()
+	handlers := NewHandlers(server)
+	ctx := &MockContext{}
+
+	entries := []rpc.LogEntry{
+		{Timestamp: 1, Message: "line 1"},
+		{Timestamp: 2, Message: "line 2"},
+		{Timestamp: 3, Message: "line 3"},
+	}
+	jsonStr, _ := rpc.CreateAddLogsMsg("process-id", entries).ToJSON()
+
+	handlers.HandleAddLogs(ctx, "test-id", rpc.AddLogsPayloadType, jsonStr)
+	assert.False(t, server.httpError)
+	// All entries written via the batch path, with server-derived colony/executor.
+	assert.Len(t, server.logDB.logs, 3)
+	for _, l := range server.logDB.logs {
+		assert.Equal(t, "process-id", l.ProcessID)
+		assert.Equal(t, "test-colony", l.ColonyName)
+		assert.Equal(t, "test-executor", l.ExecutorName)
+	}
+}
+
+func TestHandleAddLogsEmptyUnit(t *testing.T) {
+	server := createMockServer()
+	handlers := NewHandlers(server)
+	ctx := &MockContext{}
+
+	jsonStr, _ := rpc.CreateAddLogsMsg("process-id", nil).ToJSON()
+	handlers.HandleAddLogs(ctx, "test-id", rpc.AddLogsPayloadType, jsonStr)
+	assert.False(t, server.httpError)
+	assert.Len(t, server.logDB.logs, 0)
+}
+
+func TestHandleAddLogsNotAssignedExecutorUnit(t *testing.T) {
+	server := createMockServer()
+	p := runningAssignedProcess()
+	p.AssignedExecutorID = "someone-else"
+	server.processDB.process = p
+	server.executorDB.executor = approvedExecutor() // valid member, just not the assigned one
+	handlers := NewHandlers(server)
+	ctx := &MockContext{}
+
+	jsonStr, _ := rpc.CreateAddLogsMsg("process-id", []rpc.LogEntry{{Timestamp: 1, Message: "x"}}).ToJSON()
+	handlers.HandleAddLogs(ctx, "test-id", rpc.AddLogsPayloadType, jsonStr)
+	assert.True(t, server.httpError)
+	assert.Equal(t, http.StatusForbidden, server.lastErrCode)
+	assert.Len(t, server.logDB.logs, 0)
+}
+
+// Membership is now checked on the fetched executor (colony + approved) rather
+// than via RequireMembership: an unapproved executor is denied.
+func TestHandleAddLogsNotApprovedMemberUnit(t *testing.T) {
+	server := createMockServer()
+	server.processDB.process = runningAssignedProcess()
+	exec := approvedExecutor()
+	exec.State = core.PENDING // not approved
+	server.executorDB.executor = exec
+	handlers := NewHandlers(server)
+	ctx := &MockContext{}
+
+	jsonStr, _ := rpc.CreateAddLogsMsg("process-id", []rpc.LogEntry{{Timestamp: 1, Message: "x"}}).ToJSON()
+	handlers.HandleAddLogs(ctx, "test-id", rpc.AddLogsPayloadType, jsonStr)
+	assert.True(t, server.httpError)
+	assert.Equal(t, http.StatusForbidden, server.lastErrCode)
+	assert.Len(t, server.logDB.logs, 0)
+}
+
+// An executor from a different colony is denied (membership colony mismatch).
+func TestHandleAddLogsWrongColonyUnit(t *testing.T) {
+	server := createMockServer()
+	server.processDB.process = runningAssignedProcess()
+	exec := approvedExecutor()
+	exec.ColonyName = "other-colony"
+	server.executorDB.executor = exec
+	handlers := NewHandlers(server)
+	ctx := &MockContext{}
+
+	jsonStr, _ := rpc.CreateAddLogsMsg("process-id", []rpc.LogEntry{{Timestamp: 1, Message: "x"}}).ToJSON()
+	handlers.HandleAddLogs(ctx, "test-id", rpc.AddLogsPayloadType, jsonStr)
+	assert.True(t, server.httpError)
+	assert.Equal(t, http.StatusForbidden, server.lastErrCode)
+	assert.Len(t, server.logDB.logs, 0)
 }
 
 func TestHandleAddExecutorLogInvalidJSONUnit(t *testing.T) {

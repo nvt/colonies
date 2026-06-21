@@ -22,6 +22,28 @@ func (client *ColoniesClient) AddLog(processID string, logmsg string, prvKey str
 	return nil
 }
 
+// AddLogs sends many log lines for a process in a single signed request. Each
+// entry's timestamp is the client/event time; if zero, the server stamps it.
+// Prefer this over repeated AddLog calls for high-volume logging.
+func (client *ColoniesClient) AddLogs(processID string, entries []rpc.LogEntry, prvKey string) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	msg := rpc.CreateAddLogsMsg(processID, entries)
+	jsonString, err := msg.ToJSON()
+	if err != nil {
+		return err
+	}
+
+	_, err = client.sendMessage(rpc.AddLogsPayloadType, jsonString, prvKey, false, context.TODO())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // AddLogToExecutor adds a log entry for an executor without requiring a process context.
 // This is useful for executor startup logs, background operations, and diagnostics.
 func (client *ColoniesClient) AddLogToExecutor(colonyName, executorName, logmsg, prvKey string) error {

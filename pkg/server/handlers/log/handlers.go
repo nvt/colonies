@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/colonyos/colonies/pkg/backends"
 	"github.com/colonyos/colonies/pkg/core"
 	"github.com/colonyos/colonies/pkg/database"
 	"github.com/colonyos/colonies/pkg/rpc"
 	"github.com/colonyos/colonies/pkg/security"
 	"github.com/colonyos/colonies/pkg/server/registry"
-	"github.com/colonyos/colonies/pkg/backends"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,6 +27,7 @@ type Server interface {
 	ExecutorDB() database.ExecutorDatabase
 	ProcessDB() database.ProcessDatabase
 	LogDB() database.LogDatabase
+	IngestLogs(logs []*core.Log) error
 }
 
 type Handlers struct {
@@ -42,6 +43,9 @@ func NewHandlers(server Server) *Handlers {
 // RegisterHandlers implements the HandlerRegistrar interface
 func (h *Handlers) RegisterHandlers(handlerRegistry *registry.HandlerRegistry) error {
 	if err := handlerRegistry.Register(rpc.AddLogPayloadType, h.HandleAddLog); err != nil {
+		return err
+	}
+	if err := handlerRegistry.Register(rpc.AddLogsPayloadType, h.HandleAddLogs); err != nil {
 		return err
 	}
 	if err := handlerRegistry.Register(rpc.AddExecutorLogPayloadType, h.HandleAddExecutorLog); err != nil {
@@ -119,6 +123,95 @@ func (h *Handlers) HandleAddLog(c backends.Context, recoveredID string, payloadT
 	log.WithFields(log.Fields{"ProcessId": process.ID}).Debug("Adding log")
 
 	h.server.SendEmptyHTTPReply(c, rpc.AddLogPayloadType)
+}
+
+// HandleAddLogs adds many log entries for a process in one request. The
+// authorization and lookups are performed once for the whole batch (all entries
+// share the same process), then a single batched DB write is issued - in
+// contrast to HandleAddLog, which pays those costs per line.
+func (h *Handlers) HandleAddLogs(c backends.Context, recoveredID string, payloadType string, jsonString string) {
+	msg, err := rpc.CreateAddLogsMsgFromJSON(jsonString)
+	if err != nil {
+		if h.server.HandleHTTPError(c, errors.New("Failed to add logs, invalid JSON"), http.StatusBadRequest) {
+			return
+		}
+	}
+
+	if msg.MsgType != payloadType {
+		h.server.HandleHTTPError(c, errors.New("Failed to add logs, msg.MsgType does not match payloadType"), http.StatusBadRequest)
+		return
+	}
+
+	if len(msg.Entries) == 0 {
+		h.server.SendEmptyHTTPReply(c, rpc.AddLogsPayloadType)
+		return
+	}
+
+	process, err := h.server.ProcessDB().GetProcessByID(msg.ProcessID)
+	if h.server.HandleHTTPError(c, err, http.StatusBadRequest) {
+		return
+	}
+	if process == nil {
+		errmsg := "Failed to add logs, process is nil"
+		log.Error(errmsg)
+		h.server.HandleHTTPError(c, errors.New(errmsg), http.StatusInternalServerError)
+		return
+	}
+
+	colonyName := process.FunctionSpec.Conditions.ColonyName
+
+	// Authorize with a single executor fetch. Membership (colony match + approved)
+	// is checked in memory on that executor, instead of calling RequireMembership,
+	// which does a colony lookup plus a second executor fetch. The assigned-executor
+	// check below is the actual gate. This removes ~2 DB reads per batch.
+	// The legacy single-line HandleAddLog still uses the validator.
+	executor, err := h.server.ExecutorDB().GetExecutorByID(recoveredID)
+	if h.server.HandleHTTPError(c, err, http.StatusForbidden) {
+		log.Error(err)
+		return
+	}
+	if executor == nil || executor.ColonyName != colonyName || executor.State != core.APPROVED {
+		h.server.HandleHTTPError(c, errors.New("Failed to add logs, not an approved member of colony <"+colonyName+">"), http.StatusForbidden)
+		return
+	}
+
+	if process.State != core.RUNNING {
+		errmsg := "Failed to add logs, process is not running"
+		log.Error(errmsg)
+		h.server.HandleHTTPError(c, errors.New(errmsg), http.StatusForbidden)
+		return
+	}
+
+	if process.AssignedExecutorID != recoveredID {
+		errmsg := "Failed to add logs, only the assigned Executor may add logs"
+		log.Error(errmsg)
+		h.server.HandleHTTPError(c, errors.New(errmsg), http.StatusForbidden)
+		return
+	}
+
+	logs := make([]*core.Log, 0, len(msg.Entries))
+	for _, entry := range msg.Entries {
+		ts := entry.Timestamp
+		if ts == 0 {
+			ts = time.Now().UTC().UnixNano()
+		}
+		logs = append(logs, &core.Log{
+			ProcessID:    process.ID,
+			ColonyName:   colonyName,
+			ExecutorName: executor.Name,
+			Timestamp:    ts,
+			Message:      entry.Message,
+		})
+	}
+
+	if err := h.server.IngestLogs(logs); h.server.HandleHTTPError(c, err, http.StatusInternalServerError) {
+		log.WithFields(log.Fields{"Error": err}).Debug("Failed to add logs")
+		return
+	}
+
+	log.WithFields(log.Fields{"ProcessId": process.ID, "Count": len(logs)}).Debug("Adding logs (batch)")
+
+	h.server.SendEmptyHTTPReply(c, rpc.AddLogsPayloadType)
 }
 
 // HandleAddExecutorLog adds a log entry for an executor without requiring a process context.

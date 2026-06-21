@@ -4,6 +4,7 @@ import "github.com/colonyos/colonies/pkg/core"
 
 type LogDatabase interface {
 	AddLog(processID string, colonyName string, executorName string, timestamp int64, msg string) error
+	AddLogs(logs []*core.Log) error
 	GetLogsByProcessID(processID string, limit int) ([]*core.Log, error)
 	GetLogsByProcessIDSince(processID string, limit int, since int64) ([]*core.Log, error)
 	GetLogsByProcessIDLatest(processID string, limit int) ([]*core.Log, error)

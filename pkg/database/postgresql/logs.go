@@ -2,10 +2,12 @@ package postgresql
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/colonyos/colonies/pkg/core"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 func (db *PQDatabase) AddLog(processID string, colonyName string, executorName string, timestamp int64, msg string) error {
@@ -16,6 +18,103 @@ func (db *PQDatabase) AddLog(processID string, colonyName string, executorName s
 	}
 
 	return nil
+}
+
+// logColumns is the number of columns inserted per log row.
+const logColumns = 6
+
+// maxLogRowsPerInsert bounds rows per multi-row INSERT so the parameter count
+// stays well under PostgreSQL's 65535 limit (logColumns * rows).
+const maxLogRowsPerInsert = 1000
+
+// copyLogRowsThreshold is the batch size at or above which AddLogs uses a single
+// COPY (one transaction) instead of chunked multi-row INSERTs. COPY has higher
+// fixed setup cost but a much cheaper per-row path, so it wins for large batches
+// (e.g. those produced by async coalescing); small batches stay on INSERT.
+const copyLogRowsThreshold = 1000
+
+// AddLogs persists many log rows in one call. Large batches use a single COPY in
+// one transaction; smaller batches use chunked multi-row INSERTs. Each log's
+// Timestamp is stored as TS (the client/event time); ADDED is the server insert
+// time, shared across the batch.
+func (db *PQDatabase) AddLogs(logs []*core.Log) error {
+	if len(logs) == 0 {
+		return nil
+	}
+	if len(logs) >= copyLogRowsThreshold {
+		return db.addLogsCopy(logs)
+	}
+	return db.addLogsInsert(logs)
+}
+
+// addLogsInsert writes the batch using chunked multi-row INSERTs.
+func (db *PQDatabase) addLogsInsert(logs []*core.Log) error {
+	added := time.Now()
+	for start := 0; start < len(logs); start += maxLogRowsPerInsert {
+		end := start + maxLogRowsPerInsert
+		if end > len(logs) {
+			end = len(logs)
+		}
+		chunk := logs[start:end]
+
+		var sb strings.Builder
+		sb.WriteString("INSERT INTO " + db.dbPrefix + "LOGS (PROCESS_ID, COLONY_NAME, EXECUTOR_NAME, TS, MSG, ADDED) VALUES ")
+		args := make([]any, 0, len(chunk)*logColumns)
+		for i, l := range chunk {
+			if i > 0 {
+				sb.WriteString(",")
+			}
+			base := i * logColumns
+			sb.WriteString(fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6))
+			args = append(args, l.ProcessID, l.ColonyName, l.ExecutorName, l.Timestamp, l.Message, added)
+		}
+
+		if _, err := db.postgresql.Exec(sb.String(), args...); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// addLogsCopy writes the batch with a single COPY in one transaction. The table
+// and column identifiers must be given in their stored (lowercase) form because
+// pq.CopyIn quotes them.
+func (db *PQDatabase) addLogsCopy(logs []*core.Log) error {
+	added := time.Now()
+	table := strings.ToLower(db.dbPrefix + "LOGS")
+
+	txn, err := db.postgresql.Begin()
+	if err != nil {
+		return err
+	}
+
+	stmt, err := txn.Prepare(pq.CopyIn(table, "process_id", "colony_name", "executor_name", "ts", "msg", "added"))
+	if err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	for _, l := range logs {
+		if _, err := stmt.Exec(l.ProcessID, l.ColonyName, l.ExecutorName, l.Timestamp, l.Message, added); err != nil {
+			stmt.Close()
+			txn.Rollback()
+			return err
+		}
+	}
+
+	// A final Exec with no arguments flushes the buffered COPY data.
+	if _, err := stmt.Exec(); err != nil {
+		stmt.Close()
+		txn.Rollback()
+		return err
+	}
+	if err := stmt.Close(); err != nil {
+		txn.Rollback()
+		return err
+	}
+
+	return txn.Commit()
 }
 
 func (db *PQDatabase) addHistoricalLog(processID string, colonyName string, executorName string, timestamp int64, msg string, t time.Time) error {

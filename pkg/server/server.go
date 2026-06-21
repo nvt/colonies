@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/colonyos/colonies/pkg/cluster"
 	"github.com/colonyos/colonies/pkg/core"
 	"github.com/colonyos/colonies/pkg/database"
+	"github.com/colonyos/colonies/pkg/logbuffer"
 	"github.com/colonyos/colonies/pkg/rpc"
 	"github.com/colonyos/colonies/pkg/security"
 	"github.com/colonyos/colonies/pkg/security/crypto"
@@ -73,6 +75,8 @@ type Server struct {
 	resourceDB              database.BlueprintDatabase
 	securityDB              database.SecurityDatabase
 	locationDB              database.LocationDatabase
+	logIngestor             logbuffer.Ingestor
+	logSem                  chan struct{} // limits concurrent log-write handling; nil = unlimited
 	exclusiveAssign         bool
 	allowExecutorReregister bool
 	retention               bool
@@ -123,6 +127,33 @@ func CreateServer(db database.Database,
 	return createServerInternal(db, port, tls, tlsPrivateKeyPath, tlsCertPath, thisNode, clusterConfig, etcdDataPath, generatorPeriod, cronPeriod, exclusiveAssign, allowExecutorReregister, retention, retentionPolicy, retentionPeriod, staleExecutorDuration)
 }
 
+// newLogIngestor builds the server's log ingestor. It is synchronous and durable
+// by default; set COLONIES_LOG_ASYNC=true to coalesce log writes from many
+// executors into fewer, larger inserts in the background (faster under heavy
+// logging, at the cost of bounded loss on an ungraceful crash). Optional tunables:
+// COLONIES_LOG_ASYNC_FLUSH_ROWS, COLONIES_LOG_ASYNC_FLUSH_MS, COLONIES_LOG_ASYNC_QUEUE.
+func newLogIngestor(db database.LogDatabase) logbuffer.Ingestor {
+	if strings.ToLower(os.Getenv("COLONIES_LOG_ASYNC")) != "true" {
+		return logbuffer.NewSync(db.AddLogs)
+	}
+	cfg := logbuffer.AsyncConfig{
+		QueueCap:      envInt("COLONIES_LOG_ASYNC_QUEUE", 0),
+		FlushRows:     envInt("COLONIES_LOG_ASYNC_FLUSH_ROWS", 0),
+		FlushInterval: time.Duration(envInt("COLONIES_LOG_ASYNC_FLUSH_MS", 0)) * time.Millisecond,
+	}
+	log.Info("Asynchronous log ingestion enabled (COLONIES_LOG_ASYNC=true)")
+	return logbuffer.NewAsync(db.AddLogs, cfg)
+}
+
+func envInt(key string, def int) int {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			return n
+		}
+	}
+	return def
+}
+
 func createServerInternal(db database.Database,
 	port int,
 	tls bool,
@@ -162,6 +193,11 @@ func createServerInternal(db database.Database,
 	server.resourceDB = db
 	server.securityDB = db
 	server.locationDB = db
+	server.logIngestor = newLogIngestor(db)
+	if k := envInt("COLONIES_LOG_MAX_CONCURRENCY", 0); k > 0 {
+		server.logSem = make(chan struct{}, k)
+		log.WithFields(log.Fields{"MaxConcurrency": k}).Info("Log-write QoS limit enabled (COLONIES_LOG_MAX_CONCURRENCY)")
+	}
 
 	server.controller = controllers.CreateColoniesController(db, thisNode, clusterConfig, etcdDataPath, generatorPeriod, cronPeriod, retention, retentionPolicy, retentionPeriod, staleExecutorDuration)
 
@@ -367,6 +403,15 @@ func (server *Server) handleAPIRequest(c backends.Context) {
 		return
 	}
 
+	// Limit how many log-write requests run concurrently so a burst of logging
+	// cannot use up all CPU or DB connections. The check is before signature
+	// recovery, so excess requests wait here instead of doing work. A nil
+	// semaphore means unlimited, which is the default.
+	if server.logSem != nil && (rpcMsg.PayloadType == rpc.AddLogsPayloadType || rpcMsg.PayloadType == rpc.AddLogPayloadType) {
+		server.logSem <- struct{}{}
+		defer func() { <-server.logSem }()
+	}
+
 	recoveredID, err := server.parseSignature(rpcMsg.Payload, rpcMsg.Signature)
 	if server.HandleHTTPError(c, err, http.StatusForbidden) {
 		return
@@ -531,6 +576,11 @@ func (server *Server) FileDB() database.FileDatabase {
 
 func (server *Server) Shutdown() {
 	server.controller.Stop()
+
+	// Flush and stop the log ingestor (drains any queued logs).
+	if server.logIngestor != nil {
+		server.logIngestor.Close()
+	}
 
 	// Shutdown HTTP server
 	if server.server != nil {

@@ -499,6 +499,7 @@ func (db *DatabaseMock) RemoveAllCronsByColonyName(colonyName string) error { re
 
 // LogDatabase interface  
 func (db *DatabaseMock) AddLog(processID string, colonyName string, executorName string, timestamp int64, msg string) error { return nil }
+func (db *DatabaseMock) AddLogs(logs []*core.Log) error { return nil }
 func (db *DatabaseMock) GetLogsByProcessID(processID string, limit int) ([]*core.Log, error) { return nil, nil }
 func (db *DatabaseMock) GetLogsByProcessIDSince(processID string, limit int, since int64) ([]*core.Log, error) { return nil, nil }
 func (db *DatabaseMock) GetLogsByExecutor(executorName string, limit int) ([]*core.Log, error) { return nil, nil }
