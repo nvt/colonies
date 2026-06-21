@@ -12,6 +12,7 @@ GOLDFLAGS += -X 'main.BuildTime=$(BUILDTIME)'
 
 build:
 	@CGO_ENABLED=0 go build -ldflags="-s -w $(GOLDFLAGS)" -o ./bin/colonies ./cmd/main.go
+	@CGO_ENABLED=0 go build -ldflags="-s -w $(GOLDFLAGS)" -o ./bin/colonies-logservice ./cmd/logservice
 	@go build -buildmode=c-shared -o ./lib/libcryptolib.so ./internal/cryptolib/cryptolib.go
 	@go build -buildmode=c-shared -o ./lib/libcfslib.so ./internal/cfslib/cfslib.go
 	@GOOS=js GOARCH=wasm go build -o ./lib/libcryptolib.wasm internal/cryptolib.wasm/cryptolib.go
@@ -36,6 +37,28 @@ push:
 coverage:
 	./buildtools/coverage.sh
 	./buildtools/codecov
+
+# Old-vs-new logging performance artifact: per-line AddLog vs batched AddLogs over
+# the full real path, compared with benchstat. Needs Postgres on :5432 and
+# benchstat (go install golang.org/x/perf/cmd/benchstat@latest).
+bench-logging:
+	@TZ=Europe/Stockholm COLONIES_BENCH_MODE=old go test -run='^$$' -bench=BenchmarkLogIngest -benchtime=1s -count=6 -timeout=1200s ./pkg/server/ 2>/dev/null | grep BenchmarkLogIngest > /tmp/log_old.txt
+	@TZ=Europe/Stockholm COLONIES_BENCH_MODE=new go test -run='^$$' -bench=BenchmarkLogIngest -benchtime=1s -count=6 -timeout=1200s ./pkg/server/ 2>/dev/null | grep BenchmarkLogIngest > /tmp/log_new.txt
+	@benchstat /tmp/log_old.txt /tmp/log_new.txt
+
+# Cross-executor isolation artifact: a victim's request p99 under a log flood,
+# with the flood routed in-process vs to a standalone log service, without and
+# with the QoS limit. Needs Postgres on :5432.
+bench-logging-isolation:
+	@echo "== no QoS =="
+	@TZ=Europe/Stockholm COLONIES_ISOLATION_TEST=1 COLONIES_CONTENTION_SECONDS=3 go test -run TestLoggingIsolation -timeout 300s -v ./pkg/server/ 2>/dev/null | grep -E 'baseline|in-process|separated'
+	@echo "== QoS=2 =="
+	@TZ=Europe/Stockholm COLONIES_ISOLATION_TEST=1 COLONIES_CONTENTION_SECONDS=3 COLONIES_LOG_MAX_CONCURRENCY=2 go test -run TestLoggingIsolation -timeout 300s -v ./pkg/server/ 2>/dev/null | grep -E 'baseline|in-process|separated'
+
+# Pinned isolation artifact: log service in a SEPARATE OS process with bounded
+# GOMAXPROCS (approximates dedicated hardware on a single multi-core host).
+bench-logging-isolation-pinned:
+	@TZ=Europe/Stockholm COLONIES_ISOLATION_PINNED_TEST=1 COLONIES_CONTENTION_SECONDS=3 go test -run TestLoggingIsolationPinned -timeout 300s -v ./pkg/server/ 2>/dev/null | grep -E 'pinned:|baseline|in-process|separated'
 
 build_cryptolib_ubuntu_2020:
 	cd buildtools; ./build_cryptolib_ubuntu.sh 

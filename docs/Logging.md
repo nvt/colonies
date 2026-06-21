@@ -49,3 +49,50 @@ To follow the executor:
 ```console
 colonies log get -e 3fc05cf3df4b494e95d6a3d297a34f19938f7daa7422ab0d4f794454133341ac --follow
 ```
+
+## Batched logging (SDK)
+
+Executors that emit many log lines should use the SDK's `LogWriter`, an
+`io.Writer` that buffers lines and sends them in batches rather than one request
+per line. Point a process's stdout/stderr at it and close it when the process
+finishes:
+
+```go
+w := client.NewLogWriter(processID, executorPrvKey, client.LogWriterOpts{})
+defer w.Close()
+cmd.Stdout = w
+cmd.Stderr = w
+```
+
+It flushes on a size or time trigger, on `Flush`, and on `Close`. On a flush error
+the affected batch is dropped (bounded loss) rather than growing memory without
+limit. The lower-level `client.AddLogs(processID, entries, prvKey)` sends a batch
+directly; `client.AddLog` (one line per call) remains for compatibility.
+
+Each batch is signed and verified like every other request. The colony and
+executor a log belongs to come from the authenticated identity, not from
+client-supplied fields. Each entry carries the line's event time; the server also
+records its own insert time, and queries are ordered by event time.
+
+## Server configuration
+
+Logging needs no configuration. Optional tuning:
+
+- `COLONIES_LOG_ASYNC=true`: coalesce writes from many executors into fewer,
+  larger database inserts in the background. This raises ingest throughput, but a
+  bounded window of queued logs can be lost on an ungraceful crash (the queue
+  drains on graceful shutdown). Tunables: `COLONIES_LOG_ASYNC_FLUSH_ROWS`,
+  `COLONIES_LOG_ASYNC_FLUSH_MS`, `COLONIES_LOG_ASYNC_QUEUE`.
+- `COLONIES_LOG_MAX_CONCURRENCY=<n>`: limit how many log-write requests the server
+  handles at once, so a burst of logging cannot starve other work. Unlimited by
+  default.
+
+## Standalone log service
+
+`cmd/logservice` runs the log RPCs as a separate process against the same database,
+moving log handling off the colonies server. Executors and `LogWriter` work
+unchanged; point them at the log service's address. It uses the same authorization
+and the same `COLONIES_LOG_ASYNC` and `COLONIES_LOG_MAX_CONCURRENCY` settings, and
+is configured with `COLONIES_LOGSERVICE_PORT` and the standard `COLONIES_DB_*`
+variables. It must connect to the colonies server's database, with the same prefix.
+`make` builds `bin/colonies-logservice`.
