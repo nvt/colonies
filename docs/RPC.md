@@ -688,5 +688,3 @@ The state attribute can have the following values:
 #### Reply 
 A Process object (see above) is delivered over the websocket whenever a matching
 process is added or reaches the requested state.
-</content>
-</invoke>
