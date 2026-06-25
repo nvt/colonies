@@ -94,7 +94,7 @@ Subscribe(channelID string, callerID string) (chan *MsgEntry, error)
 When a process is submitted, channels are auto-created with deterministic IDs:
 
 ```go
-func (controller *ColoniesController) AddProcess(process *core.Process) error {
+func (controller *ColoniesController) AddProcessToDB(process *core.Process) (*core.Process, error) {
     // ... add process to database ...
 
     // Auto-create channels from spec
@@ -111,7 +111,7 @@ func (controller *ColoniesController) AddProcess(process *core.Process) error {
         }
     }
 
-    return nil
+    return process, nil
 }
 ```
 
