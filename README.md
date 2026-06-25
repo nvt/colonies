@@ -170,7 +170,6 @@ For detailed instructions on building containers including multi-platform builds
 
 ```bash
 make test              # Run all tests
-make github_test       # Run tests for CI (no color output)
 ```
 
 ### Code Coverage
