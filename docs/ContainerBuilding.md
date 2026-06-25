@@ -40,7 +40,7 @@ make container-multiplatform-push
 
 This builds for both architectures and pushes with tags:
 - `colonyos/colonies` (latest)
-- `colonyos/colonies:v1.9.0` (version from Makefile)
+- `colonyos/colonies:v1.9.10` (version from Makefile)
 
 ## Docker Buildx Setup
 
@@ -109,7 +109,7 @@ Platforms: linux/amd64, linux/amd64/v2, linux/amd64/v3, linux/arm64, linux/riscv
 The Colonies container uses a multi-stage build:
 
 1. **Builder Stage** - Builds the Go binary
-   - Based on `golang:1.24-alpine`
+   - Based on `golang:1.25.5-alpine`
    - Downloads dependencies with `go mod download`
    - Compiles with build version and timestamp
    - Produces a statically-linked binary (CGO_ENABLED=0)
