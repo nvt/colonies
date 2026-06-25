@@ -27,15 +27,11 @@ export COLONIES_DB_HOST="localhost"
 export COLONIES_DB_USER="postgres"
 export COLONIES_DB_PORT="50070"
 export COLONIES_DB_PASSWORD="rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7"
-export COLONIES_COLONY_ID="4787a5071856a4acf702b2ffcea422e3237a679c681314113d86139461290cf4"
+export COLONIES_COLONY_NAME="dev"
 export COLONIES_COLONY_PRVKEY="ba949fa134981372d6da62b6a56f336ab4d843b22c02a4257dcf7d0d73097514"
-export COLONIES_EXECUTOR_ID="3fc05cf3df4b494e95d6a3d297a34f19938f7daa7422ab0d4f794454133341ac"
-export COLONIES_EXECUTOR_PRVKEY="ddf7f7791208083b6a9ed975a72684f6406a269cfa36f1b1c32045c0a71fff05"
+export COLONIES_EXECUTOR_NAME="my_executor"
+export COLONIES_PRVKEY="ddf7f7791208083b6a9ed975a72684f6406a269cfa36f1b1c32045c0a71fff05"
 export COLONIES_EXECUTOR_TYPE="cli"
-```
-or 
-```console
-source devenv
 ```
 
 Now, start the server. The server will use the keys from the environment variables.
@@ -45,19 +41,22 @@ colonies server start
 ```
 
 ## Start an executor 
-Open another terminal (and *source devenv*).
+Open another terminal (with the same environment variables exported). The CLI
+(`os`) executor is a separate program from the
+[colonyos/executors](https://github.com/colonyos/executors) project; install it
+and start it so it pulls and runs `cli`-type processes:
 
 ```console
-colonies  executor os start --executorname my_executor --executortype cli 
+os start --executorname my_executor --executortype cli
 ```
 ## Submit a process specification
-Example process specification (see examples/function/sleep.json). The Colonies Executor will pull the process specification from the Colonies dev server and start a *sleep* process. This will cause the executor above to sleep for 100s. The *env* array in the JSON below will automatically be exported as real environment variables in the sleep process.
+Example process specification (see examples/functions/sleep.json). The Colonies Executor will pull the process specification from the Colonies dev server and start a *sleep* process. This will cause the executor above to sleep for 100s. The *env* array in the JSON below will automatically be exported as real environment variables in the sleep process.
 ```json
 {
   "conditions": {
     "executortype": "cli"
   },
-  "func": "sleep",
+  "funcname": "sleep",
   "args": [
     "3"
   ],
@@ -67,7 +66,7 @@ Example process specification (see examples/function/sleep.json). The Colonies E
 }
 ```
 
-Open another terminal (and *source devenv*).
+Open another terminal (with the same environment variables exported).
 ```console
 colonies function submit --spec sleep.json
 ```
@@ -138,7 +137,7 @@ This mechanism thus offer a last line of defense against failures and enables ad
   "conditions": {
     "executortype": "cli"
   },
-  "func": "sleep",
+  "funcname": "sleep",
   "args": [
     "100"
   ],
