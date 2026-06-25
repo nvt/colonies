@@ -3,14 +3,13 @@ In this tutorial we will develop a Colonies Executor using the Golang SDK. The e
 
 ## 1. Set up a Colonies development server
 ```console
-colonies dev
+colonies server start
 ```
 ## 2. Environmental variables
-```console
-source examples/devenv
-```
+Export the development environment variables (see the
+[Getting Started](GettingStarted.md) guide).
 
-## 3. Fibonacci Job Generator code (examples/generator/generator.go)
+## 3. Fibonacci Job Generator code (examples/fibonacci/generator/generator.go)
 ```go
 func main() {
 	colonyName := os.Getenv("COLONIES_COLONY_NAME")
@@ -40,7 +39,7 @@ func main() {
 ```
 
 
-## 6. Fibonacci Solver executor code (examples/solver/solver.go) 
+## 6. Fibonacci Solver executor code (examples/fibonacci/solver/solver.go)
 ```go
 func main() {
 	colonyName := os.Getenv("COLONIES_COLONY_NAME")
@@ -167,4 +166,4 @@ Attributes:
 +------------------------------------------------------------------+--------------+-------+------+
 ```
 
-See examples/generate_sub/generate_sub.go and examples/solver_pub/solver_pub.go for an event-driven version of the generator and executor.
+See examples/fibonacci/generator_sub/generator_sub.go and examples/fibonacci/solver_sub/solver_sub.go for an event-driven version of the generator and executor.
