@@ -76,7 +76,7 @@ In case of an error, the executor should keep calling the assign method until it
 Golang executor example:
 ```go
 for {
-    process, err := client.Assign(colonyID, timeout, prvKey)
+    process, err := client.Assign(colonyName, timeout, "", "", prvKey)
     if err!=nil {
         continue
     }
@@ -153,12 +153,21 @@ while True:
 As Colony contains all registered executors, it is possible to use it for service discovery, e.g. search for a particular executor and submit a process specification directly to it.   
 
 ```go
-executors, err := client.GetExecutors(colonyID, prvKey)
+executors, err := client.GetExecutors(colonyName, prvKey)
 for _, executor := range executors {
     if executor.Name == "videocam" {
-         condition := &Condition{ExecutorID: []{executor.ID}, ColonyName: colonyID}
-         funcSpec := &FunctionSpec{Condition: condition, Func: "turn_on_video", Args: []{arg}, MaxExecTime: 1, MaxRetries: 3}
-         err := client.Submit(funcSpec, prvKey)
+         funcSpec := &core.FunctionSpec{
+             FuncName:    "turn_on_video",
+             Args:        []interface{}{arg},
+             MaxExecTime: 1,
+             MaxRetries:  3,
+             Conditions: core.Conditions{
+                 ColonyName:    colonyName,
+                 ExecutorNames: []string{executor.Name},
+                 ExecutorType:  "videocam",
+             },
+         }
+         process, err := client.Submit(funcSpec, prvKey)
     }
 }
 ```
@@ -166,7 +175,7 @@ for _, executor := range executors {
 Resolving executors by name can also be done using the Colonies CLI.
 
 ```console
-colonies executor resolve --executorname videocam 
+colonies executor get --name videocam
 ```
 
 Output:
