@@ -95,6 +95,11 @@ flowchart LR
 
 ## Blueprint Lifecycle
 
+The states below are a conceptual model that a reconciler may implement. The
+Colonies server does not enforce them: a blueprint's `status` is a free-form map
+(`pkg/core/blueprint.go`) that the reconciler populates, so the exact state
+names and transitions depend on the reconciler implementation.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Created: User creates blueprint
@@ -380,7 +385,7 @@ sequenceDiagram
 The reconciler runs on two triggers:
 
 1. **Event-driven**: When blueprint is created/updated
-2. **Periodic**: Every N seconds (default: 30s)
+2. **Periodic**: Every 60 seconds (via a cron the server auto-creates per kind)
 
 ```mermaid
 gantt
@@ -403,16 +408,10 @@ gantt
 
 ### Configuration
 
-```bash
-# Set reconciliation interval
-RECONCILE_INTERVAL=30s
-
-# Set event trigger delay (debounce rapid changes)
-RECONCILE_DEBOUNCE=5s
-
-# Set max concurrent reconciliations
-RECONCILE_WORKERS=5
-```
+The periodic reconciliation interval is fixed at 60 seconds. When a blueprint
+definition is created, the server automatically creates a cron that triggers
+reconciliation for that kind every 60 seconds. This interval is not currently
+configurable, and there are no `RECONCILE_*` environment variables.
 
 ## Best Practices
 
