@@ -1,9 +1,9 @@
 # Generators
-Generators receive data (strings) from clients (via API) and automatically spawn workflows when number of calls exceed a threshold. Data is then available as an argument to the Colonies process.
+Generators receive data (strings) from clients (via API) and automatically spawn workflows when the number of calls reaches a threshold. Data is then available as an argument to the Colonies process.
 
 ## Start a Colonies server
 ```console
-colonies dev
+colonies server start
 ```
 ## Add a generator
 ```console
@@ -19,8 +19,8 @@ The workflow just echo the args. It look like this:
 ```json
 [
     {
-        "name": "task_a",
-        "func": "echo",
+        "nodename": "task_a",
+        "funcname": "echo",
         "args": [],
         "conditions": {
             "executortype": "cli",
@@ -44,7 +44,7 @@ colonies generator pack --generatorid f3a433d0a428ddd21fba2b82659db40dfc4e70771a
 colonies generator pack --generatorid f3a433d0a428ddd21fba2b82659db40dfc4e70771a29e2a19743ad80033749d7 --arg hello5
 ```
 
-Notice that a workflow is spawn after the last pack call, as number of pack calls > trigger. In the executor terminal we can see:
+Notice that a workflow is spawn after the last pack call, as the number of pack calls reaches the trigger value. In the executor terminal we can see:
 
 ```console
 INFO[0312] Executor was assigned a process               ProcessID=3806424831e78001fd7157a387ca9ab414ef908f0649eeed7e9fee691438db01
