@@ -356,9 +356,10 @@ func main() {
     // This blocks until the process reaches RUNNING state or times out
     fmt.Println("Waiting for executor to pick up the process...")
 
-    runningProcess, err := colonies.SubscribeProcess(
+    sub, err := colonies.SubscribeProcess(
         colonyName,
         process.ID,
+        process.FunctionSpec.Conditions.ExecutorType,
         core.RUNNING,  // Target state we're waiting for
         300,           // Timeout in seconds (5 minutes)
         prvKey,
@@ -366,6 +367,7 @@ func main() {
     if err != nil {
         log.Fatal("Timeout or error waiting for executor:", err)
     }
+    runningProcess := <-sub.ProcessChan
 
     // Step 3: Process is now RUNNING - channels are active!
     fmt.Printf("Process is RUNNING!\n")
@@ -643,7 +645,7 @@ funcSpec.Channels = []string{
 }
 
 // Optional: pass arguments to the executor
-funcSpec.Args = []string{"gpt-4", "You are a helpful assistant"}
+funcSpec.Args = []interface{}{"gpt-4", "You are a helpful assistant"}
 ```
 
 #### JavaScript/TypeScript
@@ -698,12 +700,12 @@ import (
 
 func submitProcess() (*core.Process, error) {
     // Create a client connection
-    // Parameters: host, port, TLS enabled, skip TLS verify
+    // Parameters: host, port, insecure (true disables TLS), skip TLS verify
     colonies := client.CreateColoniesClient(
         os.Getenv("COLONIES_SERVER_HOST"),
         4000,
-        true,   // Use TLS
-        false,  // Don't skip TLS verification in production
+        true,   // insecure: true disables TLS (use false for production TLS)
+        false,  // skip TLS certificate verification
     )
 
     // Get private key from environment
@@ -789,9 +791,10 @@ func waitForRunning(colonies *client.ColoniesClient, process *core.Process, prvK
 
     // SubscribeProcess blocks until the process reaches the target state
     // or the timeout expires
-    runningProcess, err := colonies.SubscribeProcess(
+    sub, err := colonies.SubscribeProcess(
         process.FunctionSpec.Conditions.ColonyName,
         process.ID,
+        process.FunctionSpec.Conditions.ExecutorType,
         core.RUNNING,  // Wait for RUNNING state
         300,           // Timeout: 5 minutes
         prvKey,
@@ -800,6 +803,7 @@ func waitForRunning(colonies *client.ColoniesClient, process *core.Process, prvK
     if err != nil {
         return nil, fmt.Errorf("failed waiting for process: %w", err)
     }
+    runningProcess := <-sub.ProcessChan
 
     fmt.Printf("Process is now RUNNING!\n")
     fmt.Printf("  Assigned Executor ID: %s\n", runningProcess.AssignedExecutorID)
@@ -1256,13 +1260,14 @@ func main() {
     fmt.Printf("Process %s submitted, waiting for executor...\n", process.ID[:8])
 
     // Wait for RUNNING state
-    runningProcess, err := colonies.SubscribeProcess(
-        colonyName, process.ID, core.RUNNING, 120, prvKey,
+    sub, err := colonies.SubscribeProcess(
+        colonyName, process.ID, process.FunctionSpec.Conditions.ExecutorType, core.RUNNING, 120, prvKey,
     )
     if err != nil {
         fmt.Fprintf(os.Stderr, "No executor available: %v\n", err)
         os.Exit(1)
     }
+    runningProcess := <-sub.ProcessChan
     fmt.Printf("Connected to executor %s\n", runningProcess.AssignedExecutorID[:8])
     fmt.Println("Type 'quit' to exit.\n")
 
@@ -1571,19 +1576,20 @@ func main() {
     funcSpec.Conditions.ColonyName = colonyName
     funcSpec.Conditions.ExecutorType = "file-processor"
     funcSpec.Channels = []string{"progress", "results"}
-    funcSpec.Args = []string{"/data/input", "/data/output"}
+    funcSpec.Args = []interface{}{"/data/input", "/data/output"}
 
     process, _ := colonies.Submit(funcSpec, prvKey)
     fmt.Printf("Submitted job: %s\n", process.ID[:8])
 
     // Wait for RUNNING
-    runningProcess, err := colonies.SubscribeProcess(
-        colonyName, process.ID, core.RUNNING, 60, prvKey,
+    sub, err := colonies.SubscribeProcess(
+        colonyName, process.ID, process.FunctionSpec.Conditions.ExecutorType, core.RUNNING, 60, prvKey,
     )
     if err != nil {
         fmt.Println("No executor available")
         return
     }
+    runningProcess := <-sub.ProcessChan
 
     // Monitor progress
     var lastSeq int64 = 0
@@ -1817,10 +1823,11 @@ This point has been made repeatedly throughout this tutorial, but it bears one f
 
 ```go
 // GOOD: Wait for RUNNING before using channels
-runningProcess, err := colonies.SubscribeProcess(colonyName, process.ID, core.RUNNING, 300, prvKey)
+sub, err := colonies.SubscribeProcess(colonyName, process.ID, executorType, core.RUNNING, 300, prvKey)
 if err != nil {
     // Handle timeout - no executor available
 }
+runningProcess := <-sub.ProcessChan
 // Now use channels...
 
 // BAD: Using channels immediately after submit
@@ -1970,15 +1977,17 @@ When using these APIs, remember that most operations require a private key for a
 The Go client is available in the `github.com/colonyos/colonies/pkg/client` package. All methods that communicate with the server require a private key as their last parameter for request signing.
 
 ```go
-// Subscribe to process state changes (blocking)
-// Returns when process reaches target state or timeout
+// Subscribe to process state changes
+// Returns a subscription; read the process from sub.ProcessChan when it
+// reaches the target state (or read sub.ErrChan on timeout/error)
 func (c *ColoniesClient) SubscribeProcess(
     colonyName string,   // Name of the colony
     processID string,    // ID of the process to watch
+    executorType string, // Executor type to watch for
     state int,           // Target state (core.WAITING, RUNNING, SUCCESS, FAILED)
     timeout int,         // Timeout in seconds
     prvKey string,       // Private key for authentication
-) (*core.Process, error)
+) (*ProcessSubscription, error)
 
 // Append a message to a channel
 func (c *ColoniesClient) ChannelAppend(
