@@ -1,5 +1,5 @@
 # Tutorial
-In this tutorial we will develop a Colonies Executor using the Golang SDK. The executor calculates the last number in a given Fibonacci serie.
+In this tutorial we will develop a Colonies Executor using the Golang SDK. The executor calculates the last number in a given Fibonacci series.
 
 ## 1. Set up a Colonies development server
 ```console

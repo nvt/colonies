@@ -9,7 +9,7 @@ docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=rFcLGNkgsNtks
 ./bin/colonies database create --dbhost localhost --dbport 5432 --dbuser postgres --dbpassword=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
 ```
 
-## In case, you would like to clear the database
+## In case you would like to clear the database
 ```console
 ./bin/colonies database drop --dbhost localhost --dbport 5432 --dbuser postgres --dbpassword=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
 ```

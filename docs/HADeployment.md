@@ -1,11 +1,11 @@
 # Introduction
 The Colonies server uses four ports: three internal ports plus the externally exposed API port.
-* The Etc client port (-etcdclientport) is used to by external clients to communicate with the Etcd server API. 
+* The Etcd client port (-etcdclientport) is used by external clients to communicate with the Etcd server API.
 * The Etcd peer port (-etcdpeerport) is used for internal communication between Etcd servers.
-* The Relayport port (-relayport) is used for internal communication between Colonies servers. 
-* The API port port (-port) exposes the Colonies API. 
+* The Relay port (-relayport) is used for internal communication between Colonies servers.
+* The API port (-port) exposes the Colonies API.
 
-Note: For security reasons, only API port should be exposed externally on the Internet.
+Note: For security reasons, only the API port should be exposed externally on the Internet.
 
 # RAFT/Etcd requirements 
 | Colonies Server Replicas | Majority | Failure Tolerance |
@@ -21,7 +21,7 @@ Note: For security reasons, only API port should be exposed externally on the In
 |            9             |    5     |         4         |
 
 # Tutorial
-Start 3 terminals and run the following command.Note that you first need to setup a PostgreSQL database and export the following environmental variables.
+Start 3 terminals and run the following command. Note that you first need to set up a PostgreSQL database and export the following environmental variables.
 
 ```console
 export LANG=en_US.UTF-8
@@ -47,7 +47,7 @@ export COLONIES_PRVKEY="ddf7f7791208083b6a9ed975a72684f6406a269cfa36f1b1c32045c0
 export COLONIES_EXECUTOR_TYPE="cli"
 ```
 
-Type following command to start a TimescaleDB server.
+Type the following command to start a TimescaleDB server.
 ```console
 docker run -d --name timescaledb -p 5432:5432 -e POSTGRES_PASSWORD=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7 --restart unless-stopped timescale/timescaledb:latest-pg12
 ```
@@ -88,7 +88,7 @@ INFO[0000] Starting a Colonies client                    Insecure=true ServerHos
 ```
 
 ## Kill the leader 
-Server 3 is the leader, kill it by pressing Ctrl-C. Notice the log message "INFO[0040] Colonies server came leader" in the Server 2 terminal window. 
+Server 3 is the leader; kill it by pressing Ctrl-C. Notice the log message "INFO[0040] Colonies server became leader" in the Server 2 terminal window.
 
 ```console
 colonies cluster info

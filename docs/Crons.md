@@ -1,6 +1,6 @@
 # Using cron to spawn workflows
 Generators are useful when there is a sequence of incoming data, and a workflow should be spawned when there is a certain amount of data. 
-Cron on the other hand are spawned periodically by specifying a cron expression or an interval. It is also possible to randomly spawn workflows within a specified interval. 
+Crons, on the other hand, are spawned periodically by specifying a cron expression or an interval. It is also possible to randomly spawn workflows within a specified interval.
 
 ## Cron expressions
 Cron expressions follow this format:
@@ -54,7 +54,7 @@ INFO[0000] Starting a Colonies client                    Insecure=true ServerHos
 INFO[0000] Cron added                                    CronID=e2c81ec5b2ab75c2290cf195310105f1e8f5f1b733b70973f843dc2adb7708ac
 ```
 
-The submitted workflow consists of two processes. The first process (generate_date) stores the current time to a file (/tmp/currentdate). The seconds process (print_date), which can not start before first process has finished, printed the /tmp/currentdate file to standard out.
+The submitted workflow consists of two processes. The first process (generate_date) stores the current time to a file (/tmp/currentdate). The second process (print_date), which cannot start before the first process has finished, prints the /tmp/currentdate file to standard out.
 
 ```json
 [
@@ -157,7 +157,7 @@ Conditions:
 +--------------+---------------+
 ```
 
-## Lists all available cron 
+## List all available crons
 ```console
 colonies cron ls 
 ```
@@ -247,15 +247,15 @@ The waiting queue will just keep on increasing if there are no executors executi
 ]
 ```
 
-## Use interval instead of a cron expressions 
-An alternative way to spawn a cron is to specify an interval instead of a cron expression. In the example, below a workflow is spawned every 10 seconds.
+## Use an interval instead of a cron expression
+An alternative way to spawn a cron is to specify an interval instead of a cron expression. In the example below, a workflow is spawned every 10 seconds.
 
 ```console
  cron add --name example_cron --interval 10 --spec examples/cron/cron_maxwaittime_workflow.json
 ```
 
 ## Random intervals
-It is also possible to spawn a workflow at a random time within an interval. This can be very useful when testing a software (e.g. chaos engineering).
+It is also possible to spawn a workflow at a random time within an interval. This can be very useful when testing software (e.g. chaos engineering).
 
 ```console
  cron add --name example_cron --interval 10 --random --spec examples/cron/cron_maxwaittime_workflow.json

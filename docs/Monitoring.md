@@ -1,11 +1,11 @@
 # Monitoring
-The Colonies server has built-in support for Prometheus instrumentation. The development server starts a montitoring server at the port specified by the **COLONIES_MONITOR_PORT** environmental variable. 
+The Colonies server has built-in support for Prometheus instrumentation. The development server starts a monitoring server on the port specified by the **COLONIES_MONITOR_PORT** environmental variable.
 
 ```console
 export COLONIES_MONITOR_PORT="21120"
 ```
 
-Alternatively, an standalone monitoring server can be started:
+Alternatively, a standalone monitoring server can be started:
 
 ```console
 export COLONIES_SERVER_HOST="localhost"
@@ -40,7 +40,7 @@ docker run -p 9090:9090 -v /home/ubuntu/prometheus.yml:/etc/prometheus/prometheu
 docker run -p 3000:3000 grafana/grafana-oss:latest-ubuntu
 ```
 
-Log in into Grafana (http://localhost:3000) and add the Prometheus server as a new datasource.
+Log in to Grafana (http://localhost:3000) and add the Prometheus server as a new datasource.
 
 ## Metrics
 The following metrics are exported:

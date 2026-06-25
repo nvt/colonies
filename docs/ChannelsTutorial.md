@@ -216,7 +216,7 @@ The FAILED state indicates that something went wrong. This might be because the 
 
 Channels have their own lifecycle that is tightly coupled to the process lifecycle. Understanding this coupling is essential for avoiding timing-related bugs.
 
-When a process is created, the server reserves the channel names specified in the function specification. At this point, the channels exist in a conceptual sense, they have been allocated and associated with the process, but they are not yet ready for use. Think of this as a reservation rather than an activation.
+When a process is created, the server reserves the channel names specified in the function specification. At this point, the channels exist in a conceptual sense: they have been allocated and associated with the process, but they are not yet ready for use. Think of this as a reservation rather than an activation.
 
 The channels become fully active only when the process transitions to the RUNNING state. This activation is atomic with the state transition, meaning there is no window where the process is RUNNING but the channels are not yet ready. Once RUNNING, both the client who submitted the process and the executor who is processing it can subscribe to channels, append messages, and read the message history.
 
@@ -780,7 +780,7 @@ There are two approaches to waiting: subscription-based and polling-based. The s
 
 Both approaches are shown below. In production, the subscription approach is preferred for its efficiency, but the polling approach can serve as a fallback or for simple scripts where the additional complexity of WebSocket handling is not warranted.
 
-When waiting for RUNNING state, always include a timeout. If no executor is available to pick up your process, you do not want to wait forever. A reasonable timeout depends on your application: a user-facing chat interface might timeout after 30 seconds, while a batch processing system might wait several minutes.
+When waiting for RUNNING state, always include a timeout. If no executor is available to pick up your process, you do not want to wait forever. A reasonable timeout depends on your application: a user-facing chat interface might time out after 30 seconds, while a batch processing system might wait several minutes.
 
 #### Go (Blocking Approach)
 
@@ -1631,7 +1631,7 @@ func main() {
 
 ## Error Handling
 
-Robust error handling is essential for production applications. The distributed nature of ColonyOS means that many things can go wrong: network connections can fail, executors can crash, processes can timeout, and channel operations can fail for various reasons. A production-quality application must anticipate these failures and handle them gracefully, either by recovering automatically or by informing the user clearly about what went wrong.
+Robust error handling is essential for production applications. The distributed nature of ColonyOS means that many things can go wrong: network connections can fail, executors can crash, processes can time out, and channel operations can fail for various reasons. A production-quality application must anticipate these failures and handle them gracefully, either by recovering automatically or by informing the user clearly about what went wrong.
 
 This section covers the common errors you will encounter when working with channels and provides patterns for handling them effectively. The goal is not just to prevent crashes, but to create a resilient application that provides a good user experience even when things go wrong.
 
@@ -1947,7 +1947,7 @@ colonies.ChannelAppendWithType(processID, "chat", seq, 0, []byte(""), "end", exe
 
 Production applications need to handle shutdown gracefully, cleaning up resources and closing connections properly. For channel subscriptions, this means responding to shutdown signals by closing WebSocket connections and stopping any polling loops.
 
-Ungraceful shutdown leaves orphaned connections on the server side, which consume resources until they timeout. It can also leave your application in an inconsistent state if it is restarted quickly. By implementing proper signal handling, you ensure that your application is a good citizen and cleans up after itself.
+Ungraceful shutdown leaves orphaned connections on the server side, which consume resources until they time out. It can also leave your application in an inconsistent state if it is restarted quickly. By implementing proper signal handling, you ensure that your application is a good citizen and cleans up after itself.
 
 ```go
 // Register cleanup handlers

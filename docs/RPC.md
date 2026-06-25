@@ -1,5 +1,5 @@
 # HTTP RPC protocol
-The Colonies RPC messages has the following format:
+Colonies RPC messages have the following format:
 
 ```json
 {
@@ -10,12 +10,12 @@ The Colonies RPC messages has the following format:
 ```
 
 * Messages are POSTed to http://host:port/api.
-* The *payload* attribute is an Base64 string containing JSON data as specified in the API description below.
+* The *payload* attribute is a Base64 string containing JSON data as specified in the API description below.
 * The *signature* is calculated based on the Base64 payload data using a private key.
-* It is assumed that SSL/TLS are used to prevent replay attacks.
-* Note that **payloadtype** and **msgtype** must match. The reason to duplicate this information is allow for introspection using structured parsning but at the same time sign the message so that the semantic of the RPC operation is kept in one message. Otherwise, an attacker would be able to change the payloadtype and keep the payload to trick the Colonies Server. 
+* It is assumed that SSL/TLS is used to prevent replay attacks.
+* Note that **payloadtype** and **msgtype** must match. This information is duplicated to allow for introspection through structured parsing while still signing the message, so that the semantics of the RPC operation are kept within a single message. Otherwise, an attacker would be able to change the payloadtype while keeping the payload to trick the Colonies Server.
 
-The Colonies Server will reply with a RPC reply message according to the following format:
+The Colonies Server will reply with an RPC reply message according to the following format:
 
 ```json
 {
@@ -431,7 +431,7 @@ The state attribute can have the following values:
 * 2 : Success 
 * 3 : Failed 
 
-Note, all processes will be returned for the entire colony if executorid is not specified.
+Note that all processes for the entire colony will be returned if executorid is not specified.
 
 ```json
 {

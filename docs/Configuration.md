@@ -1,5 +1,5 @@
 # Configuration 
-To make Kubernetes deployments easier, Colonies does not have configuration files, but is rather configured using environmental variables. 
+To make Kubernetes deployments easier, Colonies does not use configuration files, but is instead configured using environmental variables.
 
 ## Environmental variables 
 ### Database 
@@ -34,7 +34,7 @@ export COLONIES_EXECUTOR_TYPE="cli"
 ```
 
 ### Prometheus monitoring 
-The Colonies server has built-in support for Prometheus instrumentation. The variables below controls which port the monitoring server should run at and how it metrics should be collected. 
+The Colonies server has built-in support for Prometheus instrumentation. The variables below control which port the monitoring server should run on and how its metrics should be collected.
 
 ```console
 export COLONIES_MONITOR_PORT="21120"
@@ -50,21 +50,21 @@ export COLONIES_GENERATOR_CHECKER_PERIOD="1000"
 ```
 
 ### Exclusive assign 
-When exclusive assignment is enabled, all assign requests are handled by the elected leader server in the Colonies cluster. This guarantees that a process is assigned to exactly one executor. However, this approach may result in reduced performance as assign requests cannot be evenly distributed across all Colonies server replicas for load balancing purposes."
+When exclusive assignment is enabled, all assign requests are handled by the elected leader server in the Colonies cluster. This guarantees that a process is assigned to exactly one executor. However, this approach may result in reduced performance as assign requests cannot be evenly distributed across all Colonies server replicas for load balancing purposes.
 
 ```console
 export COLONIES_EXCLUSIVE_ASSIGN="true"
 ```
 
 ### Re-registration 
-Configure the variable below to enable executors to re-registration without prior unregistration. This functionality can for example be useful in a Kubernetes environments where ungraceful termination of a Pod may hinder the executors ability to unregister gracefully."
+Configure the variable below to enable executors to re-register without prior unregistration. This functionality can, for example, be useful in Kubernetes environments where ungraceful termination of a Pod may hinder the executor's ability to unregister gracefully.
 
 ```console
 export COLONIES_ALLOW_EXECUTOR_REREGISTER="false"
 ```
 
 ### Retention 
-The variables below to automatically purge successful processes older than 604800 seconds (1 week).
+Set the variables below to automatically purge successful processes older than 604800 seconds (1 week).
 
 ```console
 export COLONIES_RETENTION="false"

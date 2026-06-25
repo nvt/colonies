@@ -1,9 +1,9 @@
 # Workflow
-A workflow is collection of named process specifications where some specifications may have dependencies to other specifications. Once submitted to the Colonies server, the Colonies server will create the corresponding processes and add the processes to the database (queue). It will also set dependencies between the processes which will then form a Directed Acyclic Graph (DAG). 
+A workflow is a collection of named process specifications where some specifications may have dependencies on other specifications. Once submitted to the Colonies server, the Colonies server will create the corresponding processes and add the processes to the database (queue). It will also set dependencies between the processes, which will then form a Directed Acyclic Graph (DAG).
 
 ![ProcessGraph](images/ProcessGraph.png)
 
-The picture above depicts an example of a DAG. Task A has no depenecies and can thus start immediately. Task B and C have to wait for Task A to finish before they can start. Task D has to wait for Task B and C to finish. 
+The picture above depicts an example of a DAG. Task A has no dependencies and can thus start immediately. Tasks B and C have to wait for Task A to finish before they can start. Task D has to wait for Tasks B and C to finish.
 
 This workflow can be modelled as follows:
 ```json
@@ -129,7 +129,7 @@ Processes:
 +-------------------+------------------------------------------------------------------+
 ```
 
-## Start a executor 
+## Start an executor
 ```console
 ./bin/unix_executor start   
 ```
@@ -159,4 +159,4 @@ task_d
 INFO[0000] Closing process as successful                 processID=f46b7e84da0657cda3982282f5bef8b3c7429eff6b635cbce9bf93eb034e6705
 ```
 
-Note that the order the processes are executed. Also, try to start another executor and you will see that both executors will execute processes.
+Note the order in which the processes are executed. Also, try to start another executor and you will see that both executors will execute processes.

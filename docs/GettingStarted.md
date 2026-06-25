@@ -128,9 +128,9 @@ Attributes:
 ```
 
 ## Execution time constraints
-The *maxecution* attribute specifies the maxiumum execution time in seconds before the process specification (job) is moved back to the queue. The *maxretries* attributes specifies how many times it may be moved back to the queue. Execution time constraint is an import feature of Colonies to implement robust workflows. If a executor crash, the process will automatically moved back to the queue and be executed by another executor. 
+The *maxecution* attribute specifies the maximum execution time in seconds before the process specification (job) is moved back to the queue. The *maxretries* attribute specifies how many times it may be moved back to the queue. The execution time constraint is an important feature of Colonies for implementing robust workflows. If an executor crashes, the process will automatically be moved back to the queue and be executed by another executor.
 
-This mechanism thus offer a last line of defense against failures and enables advanched software engineering disciplines such as [Chaos Engineering](https://en.wikipedia.org/wiki/Chaos_engineering). For example, a Chaos monkey may randomly kill executor pods in Kubernetes and Colonies guarantees that all jobs are eventually executed. 
+This mechanism thus offers a last line of defense against failures and enables advanced software engineering disciplines such as [Chaos Engineering](https://en.wikipedia.org/wiki/Chaos_engineering). For example, a Chaos monkey may randomly kill executor pods in Kubernetes, and Colonies guarantees that all jobs are eventually executed.
 
 ```json
 {
@@ -149,7 +149,7 @@ This mechanism thus offer a last line of defense against failures and enables ad
 }
 ```
 
-The process specification above will always result in failed Colonies processes as the the *sleep* process runs for exactly 100 seconds, but the process has to finish within 5 seconds. The *colonies process psf* command can be used to list all failed processes. 
+The process specification above will always result in failed Colonies processes, as the *sleep* process runs for exactly 100 seconds, but the process has to finish within 5 seconds. The *colonies process psf* command can be used to list all failed processes.
 
 ```console
 colonies process pss
@@ -163,4 +163,4 @@ colonies process psf
 +------------------------------------------------------------------+-------+------+---------------------+---------------+
 ```
 
-Note that setting *maxretries* to -1 instead if 0 will result in a loop, a job that can never succeed.
+Note that setting *maxretries* to -1 instead of 0 will result in a loop, a job that can never succeed.

@@ -5,7 +5,7 @@ A Colony has its own cryptographic identity. First, generate a key pair for it:
 colonies security generate
 ```
 
-This prints an `Id` and a `PrvKey`. Register the colony using the generated `Id` and a unique name. The Colonies server private key is required for this operation; it is taken from the `--serverprvkey` flag or the `COLONIES_SERVER_PRVKEY` environment variable. The id of the colony will be returned if the command is successful.
+This prints an `Id` and a `PrvKey`. Register the colony using the generated `Id` and a unique name. The Colonies server private key is required for this operation; it is taken from the `--serverprvkey` flag or the `COLONIES_SERVER_PRVKEY` environment variable. The ID of the colony will be returned if the command is successful.
 ```console
 colonies colony add --colonyid 9289dfccedf27392810b96968535530bb69f90afe7c35738e0e627f3810d943e --name mycolony
 ```
@@ -60,13 +60,13 @@ It is also possible to add an executor without specifying a spec file.
 colonies executor add --name test_executor --type my_executor 
 ```
 
-It is also possible to set the following environmental variables to leave out the name or type flag.
+It is also possible to set the following environment variables to leave out the name or type flag.
 ```console
 export COLONIES_EXECUTOR_NAME="test_executor"
 COLONIES_EXECUTOR_TYPE="my_executor"
 ```
 
-If HOSTNAME is set, then executor name will be set to COLONIES_EXECUTOR_NAME.HOSTNAME.
+If HOSTNAME is set, then the executor name will be set to COLONIES_EXECUTOR_NAME.HOSTNAME.
 
 ## List registered Executors
 ```console
@@ -104,7 +104,7 @@ Note that it is possible to automatically approve an executor by passing the --a
 colonies executor add --name test_executor --type my_executor --approve
 ```
 
-Similarly, a Colony Executor can be rejected with the "rejected" command. 
+Similarly, a Colony Executor can be rejected with the "reject" command.
 ```console
 colonies executor reject --name my_executor
 ```
@@ -114,7 +114,7 @@ Colony Executor with Id <4599f89a8afb7ecd9beec0b7861fab3bacba3a0e2dbe050e9f7584f
 ```
 
 ## Submit a function to a Colony
-First we need to create a function spec file. 
+First, we need to create a function spec file.
 
 ```json
 {
@@ -197,8 +197,8 @@ Output:
 +------------------------------------------------------------------+-----------------------------+
 ```
 
-## Assign a process to executor 
-An assigned process will change state to Running.
+## Assign a process to an executor
+An assigned process will change its state to Running.
 ```console
 colonies process assign
 ```

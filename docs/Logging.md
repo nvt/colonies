@@ -1,9 +1,9 @@
 # Logging 
-Colonies offers built-in logging functionality, allowing executors to add log messages to processes, e.g. stdout ot stderr logs. These logs are stored in a PostgreSQL database. If TimescaleDB is used, the logs will be stored in a timeseries hypertable; otherwise, they will be indexed and stored in a regular PostgreSQL table.
+Colonies offers built-in logging functionality, allowing executors to add log messages to processes, e.g. stdout or stderr logs. These logs are stored in a PostgreSQL database. If TimescaleDB is used, the logs will be stored in a timeseries hypertable; otherwise, they will be indexed and stored in a regular PostgreSQL table.
 If retention is enabled, log data will be automatically purged upon reaching its expiration date. This automated process ensures that logs are systematically removed from the server once they become outdated. 
 
 ## Process logging
-The logging feature can be tested using the Colonies CLI. The initial step involves submitting a function specification and assigning the process to the CLI. Note that it is only possible to to add logs to running processes, and only executors assigned to the respective process have the privilege to add logs to it.
+The logging feature can be tested using the Colonies CLI. The initial step involves submitting a function specification and assigning the process to the CLI. Note that it is only possible to add logs to running processes, and only executors assigned to the respective process have the privilege to add logs to it.
 
 ```console
 colonies function submit --spec examples/functions/cli.json
@@ -25,7 +25,7 @@ INFO[0000] Starting a Colonies client                    Insecure=true ServerHos
 helloworld⏎
 ```
 
-To follow the logs as the process executes. 
+To follow the logs as the process executes:
 ```console
 colonies log get -p 65def7d4ac4065bf72500497515b2010177f6d1c5a788a6d4ebb2534322f1ed0 --follow
 ```

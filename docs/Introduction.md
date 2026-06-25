@@ -2,28 +2,28 @@
 
 ## How does it work?
 * Humans (or Colonies Executors) submit process specs to a Colony via a Colonies server.
-* Executors connect to the Colonies server and **search for suitable tasks to execute**. Each executor must have a **valid identity** (like a passport) to prove its Colony membership and the Colonies server makes sure only authorized and qualified executors can connect and be assigned processes. 
-* Colonies executors can **reside anywhere on the Internet**, e.g. a server, inside a Kubernetes Pod, a smart phone app, or embedded in a web page, thus enabling a compute continuum spanning devices, edge and cloud.
+* Executors connect to the Colonies server and **search for suitable tasks to execute**. Each executor must have a **valid identity** (like a passport) to prove its Colony membership, and the Colonies server makes sure only authorized and qualified executors can connect and be assigned processes.
+* Colonies executors can **reside anywhere on the Internet**, e.g. a server, inside a Kubernetes Pod, a smartphone app, or embedded in a web page, thus enabling a compute continuum spanning devices, edge and cloud.
 * If an executor fails to complete a task in time, the task **will be re-assigned to another executor**. This fail-safe mechanism ensures that all tasks are eventually completed. This also makes it possible to apply **Chaos Engineering**, e.g. randomly kill executors to test the overall stability of the system.  
 
 ## What is it good at?
-* **Distributed computing**. Manage ML/AI workloads on Kubernetes. Form a Colony by deploying one or several Colonies executors in Kubernetes Pods. Then use Colonies to enable batch processing and launch processes inside executors containers.
+* **Distributed computing**. Manage ML/AI workloads on Kubernetes. Form a Colony by deploying one or several Colonies executors in Kubernetes Pods. Then use Colonies to enable batch processing and launch processes inside the executors' containers.
 * **Distributed RPC**. Use Colonies to build overlay networks to manage workflows spanning multiple cloud/edge servers and devices.
 * **Grid computing**. Use Colonies as a control server where geographically dispersed executors perform computations.
 * **Serverless computing**. Use Colonies as a building block for serverless computing.
-* **Meta operating systems**. Use Colonies to integrate various systems together, e.g. a Slurm executor could train a neural network at a super-computer, which are then automatically deployed by another executor to an Edge server or IoT device. Colonies makes it possible to handle these kinds of heterogeneous systems as a single unit to establish a compute continuum across many different systems and platforms.     
+* **Meta operating systems**. Use Colonies to integrate various systems together, e.g. a Slurm executor could train a neural network on a supercomputer, which is then automatically deployed by another executor to an Edge server or IoT device. Colonies makes it possible to handle these kinds of heterogeneous systems as a single unit to establish a compute continuum across many different systems and platforms.
 
 ## What about Kubernetes and container-native workflow engines?
 * Colonies makes it possible to **orchestrate processes inside containers**. This is far more efficient than launching a new container for each new job like [Argo Workflows](https://argoproj.github.io/argo-workflows). This is especially important when dealing with AI workflows consisting of huge containers (tens of gigabytes) or when a large amount of data needs to be shuffled into memory.
 * Colonies **complements Kubernetes** and brings robust and fault tolerant **batch processing** to Kubernetes, typically needed by many AI workloads.
-* At the same time, Colonies is **lightweight and does not require Kubernetes**. It runs in browsers, smart phones or IoT devices. This also makes it much easier to develop and test complex workflows before they are deployed on Kubernetes.
+* At the same time, Colonies is **lightweight and does not require Kubernetes**. It runs in browsers, smartphones or IoT devices. This also makes it much easier to develop and test complex workflows before they are deployed on Kubernetes.
 * Most existing frameworks are not built on top of a crypto-protocol, which makes them hard to use in an overlay across platforms and untrusted networks. 
 
 ## Key features
 * Colonies is based on [Etcd](https://etcd.io/) and is **scalable** and **robust**. 
 * A built-in crypto-protocol ECDSA (Elliptic Curve Digital Signature Algorithm) provides identity management and **secure** and **zero-trust process execution**.
 * **Robust batch processing and distributed RPC.** Processes not finishing in time are automatically moved back to the job queue to be executed by another executor.  
-* **Pull-based orchestration.** Users (or executors) submit process specifications the Colonies server. Colonies executors connect to the Colonies server and request processes to execute. A HTTP Long Polling/WebSocket protocol ensure that executors can reside anywhere on the Internet, even behind firewalls. The Colonies server never establish connections directly to executors. 
+* **Pull-based orchestration.** Users (or executors) submit process specifications to the Colonies server. Colonies executors connect to the Colonies server and request processes to execute. An HTTP Long Polling/WebSocket protocol ensures that executors can reside anywhere on the Internet, even behind firewalls. The Colonies server never establishes connections directly to executors.
 * **Multi-step workflows** or **Directed Acyclic Graph (DAG)** to capture dependencies between jobs.
 * **Generators** to automatically spawn new workflows based on external events or timeouts.
 * **Traceability**, full process execution history can be stored and used for auditing.
