@@ -336,7 +336,7 @@ import (
 
 func main() {
     // Step 1: Create client and submit process
-    colonies := client.CreateColoniesClient("localhost", 4000, true, true)
+    colonies := client.CreateColoniesClient("localhost", 4000, true, false)
     prvKey := "your-private-key"
     colonyName := "dev"
 
