@@ -484,22 +484,27 @@ This is useful when:
 ## Validation Implementation
 
 The validation is implemented in the server at:
-- `pkg/server/handlers/service/handlers.go:HandleAddResource()` (lines 401-407)
-- `pkg/core/service.go:ValidateResourceAgainstSchema()` (line 678+)
+- `pkg/server/handlers/blueprint/handlers.go` (the add and update blueprint
+  handlers call `core.ValidateBlueprintAgainstSchema`)
+- `pkg/core/blueprint.go:ValidateBlueprintAgainstSchema()`
 
 The validator checks:
 
 ```go
-func ValidateResourceAgainstSchema(blueprint *Service, schema *ValidationSchema) error {
+func ValidateBlueprintAgainstSchema(blueprint *Blueprint, schema *ValidationSchema) error {
+    if schema == nil {
+        return nil // No schema means no validation
+    }
+
     // Check required fields
     for _, requiredField := range schema.Required {
-        if _, ok := service.Spec[requiredField]; !ok {
+        if _, ok := blueprint.Spec[requiredField]; !ok {
             return fmt.Errorf("required field '%s' is missing", requiredField)
         }
     }
 
     // Validate each field in the spec
-    for fieldName, fieldValue := range service.Spec {
+    for fieldName, fieldValue := range blueprint.Spec {
         if schemaProp, ok := schema.Properties[fieldName]; ok {
             if err := validateField(fieldName, fieldValue, &schemaProp); err != nil {
                 return err
