@@ -324,12 +324,11 @@ Schemas are **optional**. BlueprintDefinitions without schemas accept any struct
 
 1. User creates/updates/deletes a blueprint
 2. Server validates the blueprint against the schema
-3. Server creates a reconciliation process with:
-   - `reconciliation.action` - "create", "update", or "delete"
-   - `reconciliation.old` - Previous blueprint state (null for create)
-   - `reconciliation.new` - New desired state (null for delete)
+3. Server creates a reconciliation process carrying the blueprint `kind` and
+   `blueprintName` as kwargs (see below)
 4. Process is assigned to an executor matching the handler's `executorType`
-5. Reconciler receives the process and reconciles the state
+5. Reconciler receives the process, fetches the desired blueprint state, and
+   reconciles it against the actual state
 6. Reconciler updates blueprint status with current state
 
 ### Reconciliation Process KwArgs
@@ -357,33 +356,18 @@ Example process kwargs:
 
 ```json
 {
-  "functionSpec": {
-    "funcName": "reconcile",
-    "kwargs": {
-      "kind": "ExecutorDeployment",
-      "blueprintName": "docker-executor"
-    },
-    "reconciliation": {
-      "action": "update",
-      "old": {
-        "kind": "ExecutorDeployment",
-        "metadata": { "name": "docker-executor" },
-        "spec": { "replicas": 1 }
-      },
-      "new": {
-        "kind": "ExecutorDeployment",
-        "metadata": { "name": "docker-executor" },
-        "spec": { "replicas": 3 }
-      }
-    }
+  "funcname": "reconcile",
+  "kwargs": {
+    "kind": "ExecutorDeployment",
+    "blueprintName": "docker-executor"
   }
 }
 ```
 
-The reconciler sees:
-- User scaled from 1 to 3 replicas
-- Need to start 2 more instances
-- Takes action to reach desired state
+Given the kind and name, the reconciler:
+- Fetches the current desired blueprint (e.g. `replicas: 3`) from the server
+- Compares it against the actual cluster state (e.g. 1 running instance)
+- Takes action to reach the desired state (starts the 2 missing instances)
 
 ### Status Updates
 
@@ -467,19 +451,15 @@ To create your own reconciler:
 
 Example reconciler skeleton:
 ```go
-func (r *Reconciler) Reconcile(process *core.Process, blueprint *core.Blueprint) error {
-    reconciliation := process.FunctionSpec.Reconciliation
+func (r *Reconciler) Reconcile(process *core.Process) error {
+    // The reconcile process carries its target in the function spec kwargs.
+    kind, _ := process.FunctionSpec.KwArgs["kind"].(string)
+    blueprintName, _ := process.FunctionSpec.KwArgs["blueprintName"].(string)
 
-    switch reconciliation.Action {
-    case "create":
-        return r.handleCreate(reconciliation.New)
-    case "update":
-        return r.handleUpdate(reconciliation.Old, reconciliation.New)
-    case "delete":
-        return r.handleDelete(reconciliation.Old)
-    }
-
-    return nil
+    // Fetch the desired blueprint(s) from the server and drive the actual
+    // state towards them. When blueprintName is empty (e.g. a periodic cron),
+    // reconcile every blueprint of this kind.
+    return r.reconcile(kind, blueprintName)
 }
 
 func (r *Reconciler) CollectStatus(blueprint *core.Blueprint) (map[string]interface{}, error) {
