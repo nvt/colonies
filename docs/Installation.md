@@ -33,21 +33,22 @@ export COLONIES_SERVER_PRVKEY="09545df1812e252a2a853cca29d7eace4a3fe2baad334e3b7
 ## Start a Colonies server 
 ```console
 export TZ=Europe/Stockholm
-./bin/colonies server start --serverid=125bf9408553e32e18d30472af4982fbdb7e1d85084eb13f9594d491fb3364b0 --port=50080 --tlscert=./cert/cert.pem --tlskey=./cert/key.pem --dbhost localhost --dbport 5432 --dbuser postgres --dbpassword=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
+export COLONIES_SERVER_ID=125bf9408553e32e18d30472af4982fbdb7e1d85084eb13f9594d491fb3364b0
+./bin/colonies server start --port=50080 --tlscert=./cert/cert.pem --tlskey=./cert/key.pem --dbhost localhost --dbport 5432 --dbuser postgres --dbpassword=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
 ```
 
 Or alternatively:
 
 ```console
 export TZ=Europe/Stockholm
-export COLONIES_SERVERID="9289dfccedf27392810b96968535530bb69f90afe7c35738e0e627f3810d943e"
-export COLONIES_SERVERPORT=50080
-export COLONIES_TLS true 
-export COLONIES_DBHOST=localhost
-export COLONIES_DBUSER=postgres
-export COLONIES_DBPORT=5432
-export COLONIES_DBPASSWORD=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
-export COLONOES_TLSCERT=...colonyos/colonies/cert/cert.pem
+export COLONIES_SERVER_ID="9289dfccedf27392810b96968535530bb69f90afe7c35738e0e627f3810d943e"
+export COLONIES_SERVER_HTTP_PORT=50080
+export COLONIES_TLS=true
+export COLONIES_DB_HOST=localhost
+export COLONIES_DB_USER=postgres
+export COLONIES_DB_PORT=5432
+export COLONIES_DB_PASSWORD=rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7
+export COLONIES_TLSCERT=...colonyos/colonies/cert/cert.pem
 export COLONIES_TLSKEY=...colonyos/colonies/cert/key.pem
 export COLONIES_VERBOSE=true
 
