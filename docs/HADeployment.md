@@ -1,5 +1,5 @@
 # Introduction
-The Colonies server uses 3 internal ports. 
+The Colonies server uses four ports: three internal ports plus the externally exposed API port.
 * The Etc client port (-etcdclientport) is used to by external clients to communicate with the Etcd server API. 
 * The Etcd peer port (-etcdpeerport) is used for internal communication between Etcd servers.
 * The Relayport port (-relayport) is used for internal communication between Colonies servers. 
@@ -40,10 +40,10 @@ export COLONIES_DB_HOST="localhost"
 export COLONIES_DB_USER="postgres"
 export COLONIES_DB_PORT="5432"
 export COLONIES_DB_PASSWORD="rFcLGNkgsNtksg6Pgtn9CumL4xXBQ7"
-export COLONIES_COLONY_ID="4787a5071856a4acf702b2ffcea422e3237a679c681314113d86139461290cf4"
+export COLONIES_COLONY_NAME="dev"
 export COLONIES_COLONY_PRVKEY="ba949fa134981372d6da62b6a56f336ab4d843b22c02a4257dcf7d0d73097514"
-export COLONIES_EXECUTOR_ID="3fc05cf3df4b494e95d6a3d297a34f19938f7daa7422ab0d4f794454133341ac"
-export COLONIES_EXECUTOR_PRVKEY="ddf7f7791208083b6a9ed975a72684f6406a269cfa36f1b1c32045c0a71fff05"
+export COLONIES_EXECUTOR_NAME="my_executor"
+export COLONIES_PRVKEY="ddf7f7791208083b6a9ed975a72684f6406a269cfa36f1b1c32045c0a71fff05"
 export COLONIES_EXECUTOR_TYPE="cli"
 ```
 
